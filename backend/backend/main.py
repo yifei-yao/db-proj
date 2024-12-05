@@ -11,11 +11,13 @@ frontend_build_path = os.getenv("FRONTEND_BUILD_PATH")
 if not frontend_build_path:
     raise RuntimeError("Environment variable `FRONTEND_BUILD_PATH` is not set.")
 
-frontend_build_path = Path(frontend_build_path).resolve()  # Convert to an absolute Path object
-index_path = frontend_build_path / "index.html"           # Path to the index.html file
+frontend_build_path = Path(frontend_build_path).resolve()
+
+index_path = frontend_build_path / "index.html"
 
 # Serve static assets (like CSS and JS)
 app.mount("/static", StaticFiles(directory=frontend_build_path / "static"), name="static")
+
 
 # Route to serve React's index.html
 @app.get("/")
