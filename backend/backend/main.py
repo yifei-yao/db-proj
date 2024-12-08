@@ -1,8 +1,9 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pathlib import Path
 from config import CONFIG
+from db import get_db_connection
 
 app = FastAPI()
 
@@ -18,6 +19,18 @@ app.mount("/static", StaticFiles(directory=frontend_build_path / "static"), name
 @app.get("/")
 async def serve_react_frontend():
     return FileResponse(index_path)
+
+
+@app.get("/test-db")
+def test_db_connection(conn=Depends(get_db_connection)):
+    """Test the database connection."""
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT 1")  # Simple query to confirm the connection
+            result = cur.fetchone()
+            return {"success": True, "result": result[0]}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
 
 
 @app.get("/{full_path:path}")
