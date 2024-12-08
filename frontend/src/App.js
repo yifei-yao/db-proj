@@ -7,6 +7,7 @@ import Login from "./components/Login";
 import FindItem from "./components/FindItem";
 import NotFound from "./components/NotFound";
 import FindOrder from "./components/FindOrder";
+import Donate from "./components/Donate";
 
 function App() {
   // State for login status and user info
@@ -66,6 +67,7 @@ function App() {
         <Route path="/login" element={<Login login={login} />} />
         <Route path="/find-item" element={<FindItem />} />
         <Route path="/find-order" element={<FindOrder />} />
+        <Route path="/donate" element={<Donate />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Router>

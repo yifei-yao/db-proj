@@ -103,7 +103,7 @@ function Register() {
             <option value="staff">Staff</option>
             <option value="volunteer">Volunteer</option>
             <option value="client">Client</option>
-            <option value="dono">Donor</option>
+            <option value="donor">Donor</option>
           </select>
         </label>
         <br />

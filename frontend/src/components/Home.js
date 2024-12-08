@@ -18,6 +18,11 @@ function Home({ isLoggedIn, userInfo, logout }) {
           <p>
             <a href="/find-order">Find Order Items</a>
           </p>
+          {userInfo?.role === "staff" && (
+            <p>
+              <a href="/donate">Accept Donation</a> {/* Only visible to staff */}
+            </p>
+          )}
         </div>
       ) : (
         <p>
