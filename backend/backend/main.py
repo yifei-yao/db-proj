@@ -241,6 +241,39 @@ async def find_order_items(order_id: int, current_user: str = Depends(get_curren
         raise HTTPException(status_code=500, detail="An error occurred while fetching order items.")
 
 
+@app.get("/user-info")
+async def get_user_info(current_user: str = Depends(get_current_user)):
+    """
+    Retrieve the logged-in user's information based on the token.
+    """
+    try:
+        query = """
+            SELECT first_name, last_name, role
+            FROM public.users
+            WHERE username = %s
+        """
+        async with app.async_pool.connection() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(query, (current_user,))
+                user = await cur.fetchone()
+                if not user:
+                    raise HTTPException(status_code=404, detail="User not found")
+
+                first_name, last_name, role = user
+                return {
+                    "success": True,
+                    "username": current_user,
+                    "first_name": first_name,
+                    "last_name": last_name,
+                    "role": role,
+                }
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logging.error(f"Error fetching user info: {str(e)}")
+        raise HTTPException(status_code=500, detail="An error occurred while fetching user info.")
+
+
 @app.get("/test-db")
 async def test_db_connection():
     """Test the database connection asynchronously, print schema, and users."""

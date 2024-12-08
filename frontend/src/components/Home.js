@@ -1,11 +1,16 @@
 import React from "react";
 
-function Home({ isLoggedIn, logout }) {
+function Home({ isLoggedIn, userInfo, logout }) {
   return (
     <div>
       <h1>Welcome Home</h1>
       {isLoggedIn ? (
         <div>
+          {userInfo && (
+            <p>
+              Logged in as: <strong>{userInfo.first_name} {userInfo.last_name}</strong> ({userInfo.role})
+            </p>
+          )}
           <button onClick={logout}>Logout</button>
           <p>
             <a href="/find-item">Find Item</a>
