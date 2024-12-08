@@ -12,6 +12,8 @@ uvicorn = "^0.32.1"
 psycopg = { extras = ["binary"], version = "^3.2.3" }
 starlette = "^0.41.3"
 psycopg-pool = "^3.2.4"
+passlib = "^1.7.4"
+python-jose = "^3.3.0"
 
 
 [build-system]

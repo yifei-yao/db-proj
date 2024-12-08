@@ -4,6 +4,16 @@ from fastapi.responses import FileResponse
 from pathlib import Path
 from config import CONFIG
 from db import lifespan
+from passlib.context import CryptContext
+
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+def hash_password(password: str) -> str:
+    """Hash a password for storing in the database."""
+    return pwd_context.hash(password)
+
 
 app = FastAPI(lifespan=lifespan)
 
