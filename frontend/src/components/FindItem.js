@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import HomeIcon from "./HomeIcon";
 
 function FindItem() {
   const [itemID, setItemID] = useState("");
@@ -41,6 +42,7 @@ function FindItem() {
 
   return (
     <div>
+      <HomeIcon /> {}
       <h1>Find Item Locations</h1>
       <form onSubmit={handleSubmit}>
         <label>

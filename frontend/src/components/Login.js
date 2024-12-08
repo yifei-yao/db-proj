@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import HomeIcon from "./HomeIcon";
 
 function Login({ login }) {
   const navigate = useNavigate();
@@ -41,6 +42,7 @@ function Login({ login }) {
 
   return (
     <div>
+      <HomeIcon /> {}
       <h1>Login</h1>
       <form onSubmit={handleSubmit}>
         <label>

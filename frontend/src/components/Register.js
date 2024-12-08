@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import HomeIcon from "./HomeIcon";
 
 function Register() {
   const navigate = useNavigate();
@@ -48,6 +49,7 @@ function Register() {
 
   return (
     <div>
+      <HomeIcon /> {}
       <h1>Register</h1>
       <form onSubmit={handleSubmit}>
         <label>
