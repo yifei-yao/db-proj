@@ -1,9 +1,10 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Form
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pathlib import Path
 from config import CONFIG
 from db import lifespan
+from security import hash_password
 
 app = FastAPI(lifespan=lifespan)
 
@@ -19,6 +20,37 @@ app.mount("/static", StaticFiles(directory=frontend_build_path / "static"), name
 @app.get("/")
 async def serve_react_frontend():
     return FileResponse(index_path)
+
+
+@app.post("/register")
+async def register(
+    first_name: str = Form(...),
+    last_name: str = Form(...),
+    username: str = Form(...),
+    password: str = Form(...),
+    role: str = Form(...),
+    billAddr: str = Form(None)
+):
+    """
+    Register a new user by hashing their password and storing their details.
+    """
+    try:
+        hashed_password = hash_password(password)
+
+        async with app.async_pool.connection() as conn:
+            async with conn.cursor() as cur:
+                # Insert the new user into the database
+                try:
+                    await cur.execute("""
+                        INSERT INTO public.users (first_name, last_name, username, password, role, billAddr)
+                        VALUES (%s, %s, %s, %s, %s, %s)
+                    """, (first_name, last_name, username, hashed_password, role, billAddr))
+                except Exception as e:
+                    raise HTTPException(status_code=400, detail="Username already exists")
+
+        return {"success": True, "message": "User registered successfully"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
 
 
 @app.get("/test-db")
