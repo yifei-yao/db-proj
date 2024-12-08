@@ -170,6 +170,77 @@ async def login(
         raise HTTPException(status_code=500, detail="An unexpected error occurred")
 
 
+@app.get("/order/{order_id}")
+async def find_order_items(order_id: int, current_user: str = Depends(get_current_user)):
+    """
+    Fetch and return all items in a given order, along with the locations of their pieces.
+    Requires the user to be authenticated.
+    """
+    try:
+        query = """
+            SELECT 
+                i.ItemID, 
+                i.iDescription, 
+                i.color, 
+                i.isNew, 
+                i.material, 
+                p.pieceNum, 
+                p.pDescription, 
+                p.length, 
+                p.width, 
+                p.height, 
+                l.roomNum, 
+                l.shelfNum, 
+                l.shelfDescription
+            FROM ItemIn ii
+            JOIN Item i ON ii.ItemID = i.ItemID
+            LEFT JOIN Piece p ON i.ItemID = p.ItemID
+            LEFT JOIN Location l ON p.roomNum = l.roomNum AND p.shelfNum = l.shelfNum
+            WHERE ii.orderID = %s;
+        """
+        async with app.async_pool.connection() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(query, (order_id,))
+                results = await cur.fetchall()
+
+                if not results:
+                    raise HTTPException(status_code=404, detail="No items found for the given order ID")
+
+                # Process results into a structured format
+                items = {}
+                for row in results:
+                    item_id, i_desc, color, is_new, material, piece_num, p_desc, length, width, height, room_num, shelf_num, shelf_desc = row
+
+                    # Group pieces under each item
+                    if item_id not in items:
+                        items[item_id] = {
+                            "itemID": item_id,
+                            "description": i_desc,
+                            "color": color,
+                            "isNew": is_new,
+                            "material": material,
+                            "pieces": [],
+                        }
+                    if piece_num is not None:
+                        items[item_id]["pieces"].append({
+                            "pieceNum": piece_num,
+                            "description": p_desc,
+                            "dimensions": {"length": length, "width": width, "height": height},
+                            "location": {
+                                "roomNum": room_num,
+                                "shelfNum": shelf_num,
+                                "shelfDescription": shelf_desc,
+                            },
+                        })
+
+                return {"success": True, "orderID": order_id, "items": list(items.values())}
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logging.error(f"Error fetching order items: {str(e)}")
+        raise HTTPException(status_code=500, detail="An error occurred while fetching order items.")
+
+
 @app.get("/test-db")
 async def test_db_connection():
     """Test the database connection asynchronously, print schema, and users."""

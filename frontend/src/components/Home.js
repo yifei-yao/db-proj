@@ -10,6 +10,9 @@ function Home({ isLoggedIn, logout }) {
           <p>
             <a href="/find-item">Find Item</a>
           </p>
+          <p>
+            <a href="/find-order">Find Order Items</a>
+          </p>
         </div>
       ) : (
         <p>

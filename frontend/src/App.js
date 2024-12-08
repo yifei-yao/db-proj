@@ -6,6 +6,7 @@ import Register from "./components/Register";
 import Login from "./components/Login";
 import FindItem from "./components/FindItem";
 import NotFound from "./components/NotFound";
+import FindOrder from "./components/FindOrder"; 
 
 function App() {
   // Initialize `isLoggedIn` from localStorage
@@ -37,6 +38,7 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login login={login} />} />
         <Route path="/find-item" element={<FindItem />} />
+        <Route path="/find-order" element={<FindOrder />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Router>
