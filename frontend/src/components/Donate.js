@@ -235,10 +235,11 @@ function Donate() {
               <label>
                 Piece Number:
                 <input
-                  type="text"
+                  type="number"
                   name="pieceNum"
                   value={piece.pieceNum}
                   onChange={(e) => handlePieceChange(index, e)}
+                  required
                 />
               </label>
               <br />
@@ -255,44 +256,49 @@ function Donate() {
               <label>
                 Dimensions (L x W x H):
                 <input
-                  type="text"
+                  type="number"
                   name="length"
                   value={piece.length}
                   onChange={(e) => handlePieceChange(index, e)}
+                  required
                 />{" "}
                 x
                 <input
-                  type="text"
+                  type="number"
                   name="width"
                   value={piece.width}
                   onChange={(e) => handlePieceChange(index, e)}
+                  required
                 />{" "}
                 x
                 <input
-                  type="text"
+                  type="number"
                   name="height"
                   value={piece.height}
                   onChange={(e) => handlePieceChange(index, e)}
+                  required
                 />
               </label>
               <br />
               <label>
                 Room Number:
                 <input
-                  type="text"
+                  type="number"
                   name="roomNum"
                   value={piece.roomNum}
                   onChange={(e) => handlePieceChange(index, e)}
+                  required
                 />
               </label>
               <br />
               <label>
                 Shelf Number:
                 <input
-                  type="text"
+                  type="number"
                   name="shelfNum"
                   value={piece.shelfNum}
                   onChange={(e) => handlePieceChange(index, e)}
+                  required
                 />
               </label>
               <br />
