@@ -1,10 +1,11 @@
-from fastapi import FastAPI, HTTPException, Form
+from fastapi import FastAPI, HTTPException, Form, Depends
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from fastapi.security import OAuth2PasswordBearer
 from pathlib import Path
 from config import CONFIG
 from db import lifespan
-from security import hash_password, verify_password, create_access_token
+from security import hash_password, verify_password, create_access_token, decode_access_token
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -18,6 +19,69 @@ if not index_path.exists():
     raise RuntimeError(f"index.html not found at {index_path}")
 
 app.mount("/static", StaticFiles(directory=frontend_build_path / "static"), name="static")
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
+
+
+async def get_current_user(token: str = Depends(oauth2_scheme)):
+    """
+    Validate the token and retrieve the current user.
+    """
+    try:
+        payload = decode_access_token(token)
+        username = payload.get("sub")
+        if username is None:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        return username
+    except Exception as e:
+        logging.error(f"Token validation failed: {str(e)}")
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+
+@app.get("/item/{item_id}")
+async def find_item_locations(item_id: int, current_user: str = Depends(get_current_user)):
+    """
+    Fetch and return the locations of all pieces of the given item ID.
+    Requires the user to be authenticated.
+    """
+    try:
+        query = """
+            SELECT p.pieceNum, p.pDescription, p.length, p.width, p.height, l.roomNum, l.shelfNum, l.shelfDescription
+            FROM Piece p
+            JOIN Location l ON p.roomNum = l.roomNum AND p.shelfNum = l.shelfNum
+            WHERE p.ItemID = %s
+        """
+        async with app.async_pool.connection() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(query, (item_id,))
+                pieces = await cur.fetchall()
+
+                if not pieces:
+                    raise HTTPException(status_code=404, detail="No pieces found for the given ItemID")
+
+                # Prepare the response
+                response = [
+                    {
+                        "pieceNum": piece[0],
+                        "pDescription": piece[1],
+                        "length": piece[2],
+                        "width": piece[3],
+                        "height": piece[4],
+                        "roomNum": piece[5],
+                        "shelfNum": piece[6],
+                        "shelfDescription": piece[7],
+                    }
+                    for piece in pieces
+                ]
+
+                return {"success": True, "item_id": item_id, "pieces": response}
+
+    except HTTPException as e:
+        # Re-raise HTTP exceptions to preserve their status code and message
+        raise e
+    except Exception as e:
+        logging.error(f"Error fetching item locations: {str(e)}")
+        raise HTTPException(status_code=500, detail="An error occurred while fetching item locations.")
 
 
 @app.get("/")
