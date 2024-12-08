@@ -4,16 +4,6 @@ from fastapi.responses import FileResponse
 from pathlib import Path
 from config import CONFIG
 from db import lifespan
-from passlib.context import CryptContext
-
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-
-def hash_password(password: str) -> str:
-    """Hash a password for storing in the database."""
-    return pwd_context.hash(password)
-
 
 app = FastAPI(lifespan=lifespan)
 
@@ -33,17 +23,33 @@ async def serve_react_frontend():
 
 @app.get("/test-db")
 async def test_db_connection():
-    """Test the database connection asynchronously."""
+    """Test the database connection asynchronously, print schema, and users."""
     try:
         async with app.async_pool.connection() as conn:
             async with conn.cursor() as cur:
-                await cur.execute("SELECT 1")
-                result = await cur.fetchone()
-                return {"success": True, "result": result[0]}
+                # Fetch the schema for the 'users' table
+                await cur.execute("""
+                    SELECT column_name, data_type 
+                    FROM information_schema.columns 
+                    WHERE table_name = 'users' AND table_schema = 'public';
+                """)
+                schema = await cur.fetchall()
+
+                # Fetch all rows from the 'users' table
+                await cur.execute("SELECT * FROM public.users")
+                users = await cur.fetchall()
+
+                return {
+                    "success": True,
+                    "schema": [
+                        {"column_name": col[0], "data_type": col[1]} for col in schema
+                    ],
+                    "users": [dict(zip([desc[0] for desc in cur.description], row)) for row in users]
+                }
     except Exception as e:
         return {"success": False, "error": str(e)}
 
-
+    
 @app.get("/{full_path:path}")
 async def catch_all(full_path: str):
     return FileResponse(index_path)
