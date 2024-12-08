@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import "./style.css";
 import Home from "./components/Home";
@@ -7,12 +7,24 @@ import Login from "./components/Login";
 import NotFound from "./components/NotFound";
 
 function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  const login = () => {
+    setIsLoggedIn(true);
+  };
+
+  const logout = () => {
+    // Clear token and set login state to false
+    localStorage.removeItem("access_token");
+    setIsLoggedIn(false);
+  };
+
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<Home isLoggedIn={isLoggedIn} logout={logout} />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/login" element={<Login />} />
+        <Route path="/login" element={<Login login={login} />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Router>

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-function Login() {
+function Login({ login }) {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({ username: "", password: "" });
   const [error, setError] = useState(null);
@@ -28,6 +28,7 @@ function Login() {
         const data = await response.json();
         console.log("Token:", data.access_token); // Log the token to the console
         localStorage.setItem("access_token", data.access_token); // Store token
+        login(); // Update the login state in App
         navigate("/"); // Redirect to home
       } else {
         const data = await response.json();
