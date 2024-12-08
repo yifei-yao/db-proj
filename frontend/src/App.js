@@ -1,24 +1,34 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import "./style.css";
 import Home from "./components/Home";
 import Register from "./components/Register";
 import Login from "./components/Login";
-import FindItem from "./components/FindItem"; // Import the FindItem component
+import FindItem from "./components/FindItem";
 import NotFound from "./components/NotFound";
 
 function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  // Initialize `isLoggedIn` from localStorage
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    return localStorage.getItem("access_token") ? true : false;
+  });
 
+  // Function to log in
   const login = () => {
     setIsLoggedIn(true);
   };
 
+  // Function to log out
   const logout = () => {
-    // Clear token and set login state to false
     localStorage.removeItem("access_token");
     setIsLoggedIn(false);
   };
+
+  useEffect(() => {
+    if (!localStorage.getItem("access_token")) {
+      setIsLoggedIn(false);
+    }
+  }, []);
 
   return (
     <Router>
@@ -26,7 +36,7 @@ function App() {
         <Route path="/" element={<Home isLoggedIn={isLoggedIn} logout={logout} />} />
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login login={login} />} />
-        <Route path="/find-item" element={<FindItem />} /> {/* Add the Find Item route */}
+        <Route path="/find-item" element={<FindItem />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Router>
