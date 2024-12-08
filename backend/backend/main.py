@@ -2,16 +2,11 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pathlib import Path
-import os
+from config import CONFIG
 
 app = FastAPI()
 
-frontend_build_path = os.getenv("FRONTEND_BUILD_PATH")
-if not frontend_build_path:
-    raise RuntimeError("Environment variable `FRONTEND_BUILD_PATH` is not set.")
-
-frontend_build_path = Path(frontend_build_path).resolve()
-
+frontend_build_path = Path(CONFIG["frontend"]["build_path"]).resolve()
 index_path = frontend_build_path / "index.html"
 
 if not index_path.exists():
