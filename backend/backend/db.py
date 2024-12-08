@@ -1,28 +1,22 @@
-from psycopg_pool import ConnectionPool
+from psycopg_pool import AsyncConnectionPool
+from contextlib import asynccontextmanager
 from config import CONFIG
+from fastapi import FastAPI
 
-# Database connection details from the configuration
-DB_CONFIG = {
-    "dbname": CONFIG["database"]["name"],
-    "user": CONFIG["database"]["user"],
-    "password": CONFIG["database"]["password"],
-    "host": CONFIG["database"]["host"],
-    "port": CONFIG["database"]["port"],
-}
-
-# Initialize a connection pool
-pool = ConnectionPool(
-    conninfo=f"dbname={DB_CONFIG['dbname']} "
-             f"user={DB_CONFIG['user']} "
-             f"password={DB_CONFIG['password']} "
-             f"host={DB_CONFIG['host']} "
-             f"port={DB_CONFIG['port']}",
-    max_size=20
+# Database connection string
+DB_CONFIG = CONFIG["database"]
+CONNINFO = (
+    f"dbname={DB_CONFIG['name']} "
+    f"user={DB_CONFIG['user']} "
+    f"password={DB_CONFIG['password']} "
+    f"host={DB_CONFIG['host']} "
+    f"port={DB_CONFIG['port']}"
 )
 
 
-# Dependency function for FastAPI to provide a database connection
-def get_db_connection():
-    """Yield a database connection from the pool."""
-    with pool.connection() as conn:
-        yield conn
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Manage the connection pool lifecycle."""
+    app.async_pool = AsyncConnectionPool(conninfo=CONNINFO, max_size=20)
+    yield
+    await app.async_pool.close()

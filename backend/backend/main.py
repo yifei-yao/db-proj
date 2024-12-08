@@ -1,11 +1,11 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pathlib import Path
 from config import CONFIG
-from db import get_db_connection
+from db import lifespan
 
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 
 frontend_build_path = Path(CONFIG["frontend"]["build_path"]).resolve()
 index_path = frontend_build_path / "index.html"
@@ -22,13 +22,14 @@ async def serve_react_frontend():
 
 
 @app.get("/test-db")
-def test_db_connection(conn=Depends(get_db_connection)):
-    """Test the database connection."""
+async def test_db_connection():
+    """Test the database connection asynchronously."""
     try:
-        with conn.cursor() as cur:
-            cur.execute("SELECT 1")  # Simple query to confirm the connection
-            result = cur.fetchone()
-            return {"success": True, "result": result[0]}
+        async with app.async_pool.connection() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute("SELECT 1")
+                result = await cur.fetchone()
+                return {"success": True, "result": result[0]}
     except Exception as e:
         return {"success": False, "error": str(e)}
 
