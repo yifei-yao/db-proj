@@ -13,6 +13,8 @@ function App() {
         {/* Register page */}
         <Route path="/register" element={<Register />} />
 
+        <Route path="/login" element={<Login />} />
+
         {/* Catch-all route for 404 */}
         <Route path="*" element={<NotFound />} />
       </Routes>
@@ -158,6 +160,79 @@ function Register() {
     </div>
   );
 }
+
+function Login() {
+  const navigate = useNavigate();
+  const [formData, setFormData] = useState({ username: "", password: "" });
+  const [error, setError] = useState(null);
+
+  // Handle form input changes
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+  };
+
+  // Handle form submission
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError(null);
+
+    try {
+      const response = await fetch("/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams(formData),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        localStorage.setItem("access_token", data.access_token); // Store token
+        navigate("/"); // Redirect to home
+      } else {
+        const data = await response.json();
+        setError(data.detail || "Login failed.");
+      }
+    } catch (err) {
+      setError("An unexpected error occurred. Please try again.");
+    }
+  };
+
+  return (
+    <div>
+      <h1>Login</h1>
+      <form onSubmit={handleSubmit}>
+        <label>
+          Username:
+          <input
+            type="text"
+            name="username"
+            value={formData.username}
+            onChange={handleChange}
+            required
+          />
+        </label>
+        <br />
+        <label>
+          Password:
+          <input
+            type="password"
+            name="password"
+            value={formData.password}
+            onChange={handleChange}
+            required
+          />
+        </label>
+        <br />
+        <button type="submit">Login</button>
+      </form>
+
+      {error && <p style={{ color: "red" }}>{error}</p>}
+    </div>
+  );
+}
+
 // 404 Not Found Component
 function NotFound() {
   return (
