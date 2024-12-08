@@ -22,6 +22,13 @@ async def serve_react_frontend():
     return FileResponse(index_path)
 
 
+async def execute_query(query: str, params: tuple):
+    """Utility function to execute a query with the connection pool."""
+    async with app.async_pool.connection() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(query, params)
+
+
 @app.post("/register")
 async def register(
     first_name: str = Form(...),
@@ -36,21 +43,17 @@ async def register(
     """
     try:
         hashed_password = hash_password(password)
-
-        async with app.async_pool.connection() as conn:
-            async with conn.cursor() as cur:
-                # Insert the new user into the database
-                try:
-                    await cur.execute("""
-                        INSERT INTO public.users (first_name, last_name, username, password, role, billAddr)
-                        VALUES (%s, %s, %s, %s, %s, %s)
-                    """, (first_name, last_name, username, hashed_password, role, billAddr))
-                except Exception as e:
-                    raise HTTPException(status_code=400, detail="Username already exists")
+        query = """
+            INSERT INTO public.users (first_name, last_name, username, password, role, billAddr)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """
+        await execute_query(query, (first_name, last_name, username, hashed_password, role, billAddr))
 
         return {"success": True, "message": "User registered successfully"}
-    except Exception as e:
-        return {"success": False, "error": str(e)}
+
+    except Exception:
+        # Catch all exceptions and return a generic error message
+        raise HTTPException(status_code=400, detail="Registration failed. Ensure username is unique and inputs are valid.")
 
 
 @app.get("/test-db")
