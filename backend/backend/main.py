@@ -7,6 +7,7 @@ from config import CONFIG
 from db import lifespan
 from security import hash_password, verify_password, create_access_token, decode_access_token
 from datetime import datetime
+from psycopg import errors
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -274,7 +275,6 @@ async def get_user_info(current_user: str = Depends(get_current_user)):
         logging.error(f"Error fetching user info: {str(e)}")
         raise HTTPException(status_code=500, detail="An error occurred while fetching user info.")
 
-
 @app.post("/donate")
 async def accept_donation(
     donor_username: str = Form(...),
@@ -297,6 +297,7 @@ async def accept_donation(
         async with app.async_pool.connection() as conn:
             async with conn.cursor() as cur:
                 # a. Check that the user is a staff member
+                logging.info(f"Checking if {staff_username} is a staff member.")
                 query_role_check = """
                     SELECT role FROM public.users WHERE username = %s
                 """
@@ -307,6 +308,7 @@ async def accept_donation(
                     raise HTTPException(status_code=403, detail="Unauthorized: Only staff members can accept donations")
 
                 # b. Check that the donor is registered as a donor
+                logging.info(f"Checking if {donor_username} is a registered donor.")
                 query_donor_check = """
                     SELECT role FROM public.users WHERE username = %s AND role = 'donor'
                 """
@@ -317,40 +319,52 @@ async def accept_donation(
                     raise HTTPException(status_code=400, detail="Donor is not registered or does not exist")
 
                 # c. Insert the donated item into the `Item` table
+                logging.info("Inserting item into the Item table.")
                 query_insert_item = """
                     INSERT INTO public.item (iDescription, photo, color, isNew, hasPieces, material, mainCategory, subCategory)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING ItemID
                 """
-                await cur.execute(query_insert_item, (
-                    item_description, photo, color, is_new, has_pieces, material, main_category, sub_category
-                ))
-                item_id = (await cur.fetchone())[0]  # Get the generated ItemID
+                try:
+                    await cur.execute(query_insert_item, (
+                        item_description, photo, color, is_new, has_pieces, material, main_category, sub_category
+                    ))
+                    item_id = (await cur.fetchone())[0]  # Get the generated ItemID
+                    logging.info(f"Item inserted successfully with ItemID: {item_id}")
+                except errors.ForeignKeyViolation as fk_error:
+                    logging.error(f"Foreign key violation: {str(fk_error)}")
+                    raise HTTPException(status_code=400, detail="Invalid category or subcategory. Ensure they exist in the database.")
 
-                # c. Insert the donor and donation record into the `DonatedBy` table
+                # d. Insert the donor and donation record into the `DonatedBy` table
+                logging.info("Inserting donation record into the DonatedBy table.")
                 query_insert_donation = """
                     INSERT INTO public.donatedby (ItemID, userName, donateDate)
                     VALUES (%s, %s, %s)
                 """
                 await cur.execute(query_insert_donation, (item_id, donor_username, datetime.utcnow()))
+                logging.info(f"Donation recorded for donor {donor_username}.")
 
-                # c. Insert pieces and their locations into the `Piece` table (if the item has pieces)
+                # e. Insert pieces and their locations into the `Piece` table (if the item has pieces)
                 if has_pieces and piece_data:
+                    logging.info("Inserting piece data into the Piece table.")
                     query_insert_piece = """
                         INSERT INTO public.piece (ItemID, pieceNum, pDescription, length, width, height, roomNum, shelfNum, pNotes)
                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """
                     for piece in piece_data:
+                        logging.info(f"Inserting piece: {piece}")
                         await cur.execute(query_insert_piece, (
                             item_id, piece["pieceNum"], piece["pDescription"], piece["length"], piece["width"],
                             piece["height"], piece["roomNum"], piece["shelfNum"], piece.get("pNotes", None)
                         ))
+                    logging.info(f"All pieces inserted successfully for ItemID: {item_id}")
 
                 return {"success": True, "message": "Donation accepted successfully", "item_id": item_id}
 
     except HTTPException as e:
+        logging.error(f"HTTPException: {e.detail}")
         raise e
     except Exception as e:
-        logging.error(f"Error accepting donation: {str(e)}")
+        logging.error(f"Unexpected error: {str(e)}")
         raise HTTPException(status_code=500, detail="An error occurred while accepting the donation.")
 
 
