@@ -5,6 +5,9 @@ from pathlib import Path
 from config import CONFIG
 from db import lifespan
 from security import hash_password
+import logging
+
+logging.basicConfig(level=logging.INFO)
 
 app = FastAPI(lifespan=lifespan)
 
@@ -28,7 +31,6 @@ async def execute_query(query: str, params: tuple):
         async with conn.cursor() as cur:
             await cur.execute(query, params)
 
-
 @app.post("/register")
 async def register(
     first_name: str = Form(...),
@@ -42,17 +44,29 @@ async def register(
     Register a new user by hashing their password and storing their details.
     """
     try:
+        logging.info(f"Received registration request for username: {username}")
+
+        # Hash the password
         hashed_password = hash_password(password)
+        logging.info("Password hashed successfully")
+
+        # Insert into the database
         query = """
             INSERT INTO public.users (first_name, last_name, username, password, role, billAddr)
             VALUES (%s, %s, %s, %s, %s, %s)
         """
+        logging.info(f"Executing query with params: {first_name}, {last_name}, {username}, {role}, {billAddr}")
         await execute_query(query, (first_name, last_name, username, hashed_password, role, billAddr))
+        logging.info("User inserted into database successfully")
 
+        # Return success response
         return {"success": True, "message": "User registered successfully"}
 
-    except Exception:
-        # Catch all exceptions and return a generic error message
+    except HTTPException as e:
+        logging.error(f"HTTP Exception: {e.detail}")
+        raise e
+    except Exception as e:
+        logging.error(f"Unexpected error: {str(e)}")
         raise HTTPException(status_code=400, detail="Registration failed. Ensure username is unique and inputs are valid.")
 
 
